@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn Auto Extractor",
+  "version": "1.1",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://docs.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
