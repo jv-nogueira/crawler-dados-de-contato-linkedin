@@ -39,9 +39,27 @@ async function iniciar(url){
     x.replace(/"/g,"").trim().toLowerCase() === "link"
   );
 
+  const colunaEmpresa =
+  header.findIndex(x =>
+    x.replace(/"/g,"").trim().toLowerCase() === "empresa"
+  );
+
+  const colunaDadosContato =
+  header.findIndex(x =>
+    x.replace(/"/g,"").trim().toLowerCase() === "dados contato"
+  );
+
   if(colunaLink === -1){
     console.log("❌ Coluna Link não encontrada");
     return;
+  }
+
+  if(colunaEmpresa === -1){
+    console.log("⚠️ Coluna Empresa não encontrada");
+  }
+
+  if(colunaDadosContato === -1){
+    console.log("⚠️ Coluna 'Dados contato' não encontrada");
   }
 
   for(let i=1;i<linhas.length;i++){
@@ -51,8 +69,31 @@ async function iniciar(url){
     .replace(/"/g,"")
     .trim();
 
+    const empresa =
+    colunaEmpresa !== -1
+      ? (linhas[i][colunaEmpresa] || "")
+          .replace(/"/g,"")
+          .trim()
+      : "";
+
+    const dadosContato =
+    colunaDadosContato !== -1
+      ? (linhas[i][colunaDadosContato] || "")
+          .replace(/"/g,"")
+          .trim()
+          .toLowerCase()
+      : "";
+
+    // 🔴 REGRA: pular se TRUE
+    if(dadosContato === "true"){
+      continue;
+    }
+
     if(link.includes("linkedin.com")){
-      links.push(link);
+      links.push({
+        url: link,
+        empresa: empresa
+      });
     }
   }
 
@@ -75,7 +116,8 @@ async function processarProximo(){
     return;
   }
 
-  const url = links[indiceAtual];
+  const item = links[indiceAtual];
+  const url = item.url;
 
   console.log(`➡️ Abrindo (${indiceAtual+1}/${links.length}):`, url);
 
@@ -109,7 +151,10 @@ async function processarProximo(){
 
             console.log("📦 Extraído:", res[0].result);
 
-            resultados.push(res[0].result);
+            resultados.push({
+              ...res[0].result,
+              Empresa: item.empresa
+            });
 
           }catch(e){
 
@@ -119,8 +164,10 @@ async function processarProximo(){
               Nome:"",
               PerfilContato:url,
               Email:"",
+              Telefone:"",
               Nascimento:"",
-              TodosDados:"ERRO"
+              TodosDados:"ERRO",
+              Empresa: item.empresa
             });
 
           }
@@ -149,7 +196,7 @@ function baixarResultado(){
   let linhas = [];
 
   linhas.push(
-    "Nome\tPerfilContato\tEmail\tNascimento\tTodosDados"
+    "Nome\tPerfilContato\tEmail\tTelefone\tNascimento\tEmpresa\tTodosDados"
   );
 
   for(const r of resultados){
@@ -158,7 +205,9 @@ function baixarResultado(){
       csv(r.Nome),
       csv(r.PerfilContato),
       csv(r.Email),
+      csv(r.Telefone),
       csv(r.Nascimento),
+      csv(r.Empresa),
       csv(r.TodosDados)
     ].join("\t"));
 
@@ -183,7 +232,7 @@ function baixarResultado(){
 
       url: dataUrl,
       filename: "linkedin_resultado.txt",
-      saveAs: true
+      saveAs: false
 
     }, (id)=>{
 
@@ -243,6 +292,7 @@ await esperar(5000);
 let profileContact = "";
 let emailContact = "";
 let birthContact = "";
+let phoneContact = "";
 
 try{
 profileContact =
@@ -261,6 +311,15 @@ $$('[id="envelope-medium"]')[0]
 }catch(e){}
 
 try{
+phoneContact = 
+$$('[id="phone-handset-small"]')[0]
+.parentElement
+.querySelectorAll('p')[1]
+.children[0]
+.innerText;
+}catch(e){}
+
+try{
 birthContact =
 $$('[id="calendar-medium"]')[0]
 .parentElement
@@ -275,6 +334,7 @@ return {
   Nome: limpar(profileName),
   PerfilContato: limpar(profileContact),
   Email: limpar(emailContact),
+  Telefone: limpar(phoneContact),
   Nascimento: limpar(birthContact),
   TodosDados: limpar(allContact)
 };
@@ -285,6 +345,7 @@ return {
   Nome:"",
   PerfilContato:"",
   Email:"",
+  Telefone:"",
   Nascimento:"",
   TodosDados:"ERRO"
 };
